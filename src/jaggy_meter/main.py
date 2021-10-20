@@ -3,7 +3,7 @@ import sys
 from jaggy_meter import __version__
 import nrrd
 import json
-from jaggy_meter import core
+from jaggy_meter import core, multicore
 import numpy as np
 
 
@@ -48,6 +48,13 @@ def parse_args(args):
         # metavar="<FILE PATH>",
         help="ids of regions to measure on, coma-separated with no whitespace (ex. -r 1,2,3,4 ). The values '-r LARGEST,N' or '-r SMALLEST,N' can also be used (with 'N' being an integer)")
 
+    parser.add_argument(
+      "--multithreading",
+      "-m",
+      action='store_true',
+      dest="multithreading",
+    )
+
     return parser.parse_args(args)
 
 def main():
@@ -55,6 +62,8 @@ def main():
   volume_file_path = args.parcellation_volume
   report_filepath = args.out_report
   volume_data, volume_header = nrrd.read(volume_file_path)
+
+
 
   regions = None
   precomputed_all_region_ids = None
@@ -98,7 +107,10 @@ def main():
     else:
         regions = list( map(lambda id: int(id), args.regions.split(",")  ) )
 
-  metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
+  if args.multithreading:
+      metrics = multicore.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
+  else:
+      metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
 
   metrics_file = open(report_filepath, 'w')
   metrics_file.write(json.dumps(metrics, ensure_ascii = False, indent = 2))
