@@ -4,6 +4,7 @@ from jaggy_meter import __version__
 import nrrd
 import json
 from jaggy_meter import core
+import numpy as np
 
 
 def parse_args(args):
@@ -38,6 +39,15 @@ def parse_args(args):
         metavar="<FILE PATH>",
         help="Path to the JSON report file (output)")
 
+    parser.add_argument(
+        "--regions",
+        "-r",
+        dest="regions",
+        default=None,
+        required=False,
+        # metavar="<FILE PATH>",
+        help="ids of regions to measure on, coma-separated with no whitespace (ex. -r 1,2,3,4 ). The values '-r LARGEST,N' or '-r SMALLEST,N' can also be used (with 'N' being an integer)")
+
     return parser.parse_args(args)
 
 def main():
@@ -45,9 +55,50 @@ def main():
   volume_file_path = args.parcellation_volume
   report_filepath = args.out_report
   volume_data, volume_header = nrrd.read(volume_file_path)
-  
-  metrics = core.compute2(volume_data)
-  # metrics = core.compute(volume_data)
+
+  regions = None
+  precomputed_all_region_ids = None
+
+  if args.regions:
+    if args.regions.startswith("LARGEST"):
+        nb_to_keep = int(args.regions.split(",")[-1])
+        regions_ids, regions_counts = np.unique(volume_data, return_counts=True)
+        r = dict(zip(regions_counts.tolist(), regions_ids.tolist() ))
+        precomputed_all_region_ids = regions_ids
+        
+        regions = []
+        for nb_voxels in sorted(r, reverse = True):
+            region_id = r[nb_voxels]
+
+            # the no_data case
+            if region_id == 0:
+                continue
+
+            regions.append(region_id)
+            if len(regions) == nb_to_keep:
+              break
+
+    elif args.regions.startswith("SMALLEST"):
+        nb_to_keep = int(args.regions.split(",")[-1])
+        regions_ids, regions_counts = np.unique(volume_data, return_counts=True)
+        r = dict(zip(regions_counts.tolist(), regions_ids.tolist() ))
+        precomputed_all_region_ids = regions_ids
+        
+        regions = []
+        for nb_voxels in sorted(r):
+            region_id = r[nb_voxels]
+
+            # the no_data case
+            if region_id == 0:
+                continue
+
+            regions.append(region_id)
+            if len(regions) == nb_to_keep:
+              break
+    else:
+        regions = list( map(lambda id: int(id), args.regions.split(",")  ) )
+
+  metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
 
   metrics_file = open(report_filepath, 'w')
   metrics_file.write(json.dumps(metrics, ensure_ascii = False, indent = 2))
