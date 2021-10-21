@@ -3,8 +3,9 @@ import sys
 from jaggy_meter import __version__
 import nrrd
 import json
-from jaggy_meter import core, multicore
+from jaggy_meter import core
 import numpy as np
+import os
 
 
 def parse_args(args):
@@ -45,14 +46,15 @@ def parse_args(args):
         dest="regions",
         default=None,
         required=False,
-        # metavar="<FILE PATH>",
         help="ids of regions to measure on, coma-separated with no whitespace (ex. -r 1,2,3,4 ). The values '-r LARGEST,N' or '-r SMALLEST,N' can also be used (with 'N' being an integer)")
 
     parser.add_argument(
-      "--multithreading",
-      "-m",
-      action='store_true',
-      dest="multithreading",
+      "--threads",
+      "-t",
+      required=False,
+      dest="threads",
+      default='AUTO',
+      help="Number of threads to run on. Number or 'AUTO' (default: AUTO)"
     )
 
     return parser.parse_args(args)
@@ -69,7 +71,7 @@ def main():
   precomputed_all_region_ids = None
 
   if args.regions:
-    if args.regions.startswith("LARGEST"):
+    if args.regions.upper().strip().startswith("LARGEST"):
         nb_to_keep = int(args.regions.split(",")[-1])
         regions_ids, regions_counts = np.unique(volume_data, return_counts=True)
         r = dict(zip(regions_counts.tolist(), regions_ids.tolist() ))
@@ -87,7 +89,7 @@ def main():
             if len(regions) == nb_to_keep:
               break
 
-    elif args.regions.startswith("SMALLEST"):
+    elif args.regions.upper().strip().startswith("SMALLEST"):
         nb_to_keep = int(args.regions.split(",")[-1])
         regions_ids, regions_counts = np.unique(volume_data, return_counts=True)
         r = dict(zip(regions_counts.tolist(), regions_ids.tolist() ))
@@ -107,11 +109,15 @@ def main():
     else:
         regions = list( map(lambda id: int(id), args.regions.split(",")  ) )
 
-  if args.multithreading:
-      metrics = multicore.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
-  else:
-      metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
+    nb_thread = os.cpu_count() - 1
+    if args.threads.strip().upper() != 'AUTO':
+        try:
+            nb_thread = int(args.threads)
+        except:
+            pass
+    
+    metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids, nb_thread = nb_thread)
 
-  metrics_file = open(report_filepath, 'w')
-  metrics_file.write(json.dumps(metrics, ensure_ascii = False, indent = 2))
-  metrics_file.close()
+    metrics_file = open(report_filepath, 'w')
+    metrics_file.write(json.dumps(metrics, ensure_ascii = False, indent = 2))
+    metrics_file.close()

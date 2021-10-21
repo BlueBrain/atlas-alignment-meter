@@ -1,13 +1,66 @@
 import numpy as np
-from numpy.core.numeric import NaN, zeros_like
-import nrrd
-import json
+import threading
+import os
+
+
+def threadedProcess(volume, id, list_of_ratios_per_region, report, coronal_axis_index, per_slice_axis):
+    # we don't process the no_data part
+    if id == 0:
+        return
+
+    # print("region id: ", id , f" ({counter + 1}/{nb_regions})")
+    print("region id: ", id)
+
+    # creating the volumetric mask for this region
+    region_mask = np.zeros_like(volume)
+    region_mask[volume == id] = 1
+
+    # nrrd.write(f'region_mask_{id}.nrrd', region_mask)
+
+    # creating a rolled mask so that each slice in the rolled_region_mask is the same
+    # the slice i+1 in the region_mask
+    rolled_region_mask = np.roll(region_mask, -1, axis = coronal_axis_index)
+    # nrrd.write('rolled_region_mask.nrrd', rolled_region_mask)
+
+    # by substracting region_mask from rolled_region_mask and get the absolute val
+    # of the difference, we obtain a mask of where there are differences
+    diff_volume = np.abs(rolled_region_mask - region_mask)
+
+    # compute the per slice number of diff
+    diff_per_slice_non_zero = np.count_nonzero(diff_volume, axis = per_slice_axis)
+
+    region_mask_per_slice_non_zero = np.count_nonzero(region_mask, axis = per_slice_axis) 
+    rolled_region_mask_per_slice_non_zero = np.count_nonzero(rolled_region_mask, axis = per_slice_axis)
+
+    sum_non_zero = (region_mask_per_slice_non_zero + rolled_region_mask_per_slice_non_zero)
+
+    diff_ratios_per_slice = np.divide(diff_per_slice_non_zero, sum_non_zero, out=np.zeros_like(diff_per_slice_non_zero, dtype=float), where=sum_non_zero!=0)
+
+    
+    
+    # we want to remove the ratios that are 1 because it means it's the begining or the end of a region,
+    # hence not a transition from one true slice of a region to another.
+    diff_ratios_per_slice[diff_ratios_per_slice == 1] = 0
+
+    # Same logic for the first and last slices
+    diff_ratios_per_slice[0] = 0
+    diff_ratios_per_slice[-1] = 0
+
+    non_zero_only = diff_ratios_per_slice[diff_ratios_per_slice > 0]
+    list_of_ratios_per_region.append(diff_ratios_per_slice)
+
+    report["perRegion"][int(id)] = {
+        # "diffRatios": diff_ratios_per_slice.tolist(),
+        "mean": float(np.mean(non_zero_only)),
+        "std": float(np.std(non_zero_only)),
+        "median": float(np.median(non_zero_only)),
+    }
 
 
 
 
-def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_region_ids = None):
-    print('computing...')
+def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_region_ids = None, nb_thread = os.cpu_count() - 1):
+    print(f"computing on {nb_thread} threads...")
     shape = volume.shape
     nb_slices = shape[coronal_axis_index]
 
@@ -48,64 +101,34 @@ def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_regi
     # each element is an array with as many element as slices in the volume
     list_of_ratios_per_region = []
 
-    counter = 0
+    thread_list = []
+
+    # counter = 0
     # For each region is, we create a volumetric mask
     for id in regions_ids:
-        # we don't process the no_data part
-        if id == 0:
-            continue
+        thread = threading.Thread(target=threadedProcess, args=(volume, id, list_of_ratios_per_region, report, coronal_axis_index, per_slice_axis),)
+        thread_list.append(thread)
 
-        print("region id: ", id , f" ({counter + 1}/{nb_regions})")
+    def run_some_thread():
+        if len(thread_list) == 0:
+            return
 
-        # creating the volumetric mask for this region
-        region_mask = np.zeros_like(volume)
-        region_mask[volume == id] = 1
+        sub_list = []
+        for j in range(0, nb_thread):
+            try:
+                t = thread_list.pop()
+                sub_list.append(t)
+                t.start()
+            except:
+                pass
 
-        # nrrd.write(f'region_mask_{id}.nrrd', region_mask)
-
-        # creating a rolled mask so that each slice in the rolled_region_mask is the same
-        # the slice i+1 in the region_mask
-        rolled_region_mask = np.roll(region_mask, -1, axis = coronal_axis_index)
-        # nrrd.write('rolled_region_mask.nrrd', rolled_region_mask)
-
-        # by substracting region_mask from rolled_region_mask and get the absolute val
-        # of the difference, we obtain a mask of where there are differences
-        diff_volume = np.abs(rolled_region_mask - region_mask)
-
-        # compute the per slice number of diff
-        diff_per_slice_non_zero = np.count_nonzero(diff_volume, axis = per_slice_axis)
-
-        region_mask_per_slice_non_zero = np.count_nonzero(region_mask, axis = per_slice_axis) 
-        rolled_region_mask_per_slice_non_zero = np.count_nonzero(rolled_region_mask, axis = per_slice_axis)
-
-        sum_non_zero = (region_mask_per_slice_non_zero + rolled_region_mask_per_slice_non_zero)
-
-        diff_ratios_per_slice = np.divide(diff_per_slice_non_zero, sum_non_zero, out=np.zeros_like(diff_per_slice_non_zero, dtype=float), where=sum_non_zero!=0)
-
+        for t in sub_list:
+            t.join()
         
+        run_some_thread()
+
+    run_some_thread()
         
-        # we want to remove the ratios that are 1 because it means it's the begining or the end of a region,
-        # hence not a transition from one true slice of a region to another.
-        diff_ratios_per_slice[diff_ratios_per_slice == 1] = 0
-
-        # Same logic for the first and last slices
-        diff_ratios_per_slice[0] = 0
-        diff_ratios_per_slice[-1] = 0
-
-        non_zero_only = diff_ratios_per_slice[diff_ratios_per_slice > 0]
-        list_of_ratios_per_region.append(diff_ratios_per_slice)
-
-        report["perRegion"][int(id)] = {
-            # "diffRatios": diff_ratios_per_slice.tolist(),
-            "mean": float(np.mean(non_zero_only)),
-            "std": float(np.std(non_zero_only)),
-            "median": float(np.median(non_zero_only)),
-        }
-
-        counter += 1
-
-        # if counter >= 20:
-        #   break
 
     # list_of_ratios_per_region
     ratios_per_region_per_slice = np.concatenate(list_of_ratios_per_region)
