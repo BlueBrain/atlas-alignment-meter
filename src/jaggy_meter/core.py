@@ -12,7 +12,7 @@ def threadedProcess(volume, id, list_of_ratios_per_region, report, coronal_axis_
     print("region id: ", id)
 
     # creating the volumetric mask for this region
-    region_mask = np.zeros_like(volume)
+    region_mask = np.zeros_like(volume, dtype=np.int8)
     region_mask[volume == id] = 1
 
     # nrrd.write(f'region_mask_{id}.nrrd', region_mask)
