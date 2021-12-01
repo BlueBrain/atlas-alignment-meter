@@ -1,17 +1,16 @@
 from jaggy_meter import core
-from jaggy_meter import __version__
 import nrrd
+import numpy as np
 
-def test_report_integrity():
-  
-  assert len(__version__)
-
+def test_report_integrity_all_regions():
   # load your volume and all:
   volume_data, volume_header = nrrd.read("./test_data/annotation_25_ccfv3.nrrd")
   number_of_slice = volume_data.shape[0]
 
   # a subset of regions located in the cortical plate
-  regions = [68, 656, 320, 1030, 670, 113, 943, 962, 667]
+  regions = set(np.unique(volume_data).tolist())
+  regions.remove(0)
+  regions = list(regions)
   metrics = core.compute(volume_data, regions = regions)
 
   # The report must contain those three categories
@@ -21,6 +20,7 @@ def test_report_integrity():
 
   # Check that the metrics report includes all the regions listed above
   for region in regions:
+    print("region ", region)
     # region must be in the "perRegion" section of the report
     assert region in metrics["perRegion"]
 
@@ -30,9 +30,9 @@ def test_report_integrity():
     assert "median" in metrics["perRegion"][region]
 
     # Checking value integrity
-    assert metrics["perRegion"][region]["mean"] >= 0 and metrics["perRegion"][region]["mean"] <= 1
-    assert metrics["perRegion"][region]["std"] >= 0 and metrics["perRegion"][region]["std"] <= 1
-    assert metrics["perRegion"][region]["median"] >= 0 and metrics["perRegion"][region]["median"] <= 1
+    assert metrics["perRegion"][region]["mean"] == None or (metrics["perRegion"][region]["mean"] >= 0 and metrics["perRegion"][region]["mean"] <= 1)
+    assert metrics["perRegion"][region]["std"] == None or (metrics["perRegion"][region]["std"] >= 0 and metrics["perRegion"][region]["std"] <= 1)
+    assert metrics["perRegion"][region]["median"] == None or (metrics["perRegion"][region]["median"] >= 0 and metrics["perRegion"][region]["median"] <= 1)
 
   # Check that the "perRegion" section does not contain more than the regions listed above
   assert len(metrics["perRegion"]) == len(regions)
@@ -88,4 +88,4 @@ def test_report_integrity():
 
 # to reun the test manually
 if __name__ == "__main__":
-  test_report_integrity()
+  test_report_integrity_all_regions()

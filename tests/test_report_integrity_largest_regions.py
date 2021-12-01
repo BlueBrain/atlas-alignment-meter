@@ -1,8 +1,9 @@
 from jaggy_meter import core
 from jaggy_meter import __version__
 import nrrd
+import numpy as np
 
-def test_report_integrity():
+def test_report_integrity_largest_regions():
   
   assert len(__version__)
 
@@ -10,9 +11,26 @@ def test_report_integrity():
   volume_data, volume_header = nrrd.read("./test_data/annotation_25_ccfv3.nrrd")
   number_of_slice = volume_data.shape[0]
 
+
+  nb_to_keep = 10
+  regions_ids, regions_counts = np.unique(volume_data, return_counts=True)
+  r = dict(zip(regions_counts.tolist(), regions_ids.tolist() ))
+  precomputed_all_region_ids = regions_ids
+  
+  regions = []
+  for nb_voxels in sorted(r, reverse = True):
+      region_id = r[nb_voxels]
+
+      # the no_data case
+      if region_id == 0:
+          continue
+
+      regions.append(region_id)
+      if len(regions) == nb_to_keep:
+          break
+
   # a subset of regions located in the cortical plate
-  regions = [68, 656, 320, 1030, 670, 113, 943, 962, 667]
-  metrics = core.compute(volume_data, regions = regions)
+  metrics = core.compute(volume_data, regions = regions, precomputed_all_region_ids = precomputed_all_region_ids)
 
   # The report must contain those three categories
   assert "perRegion" in metrics
@@ -88,4 +106,4 @@ def test_report_integrity():
 
 # to reun the test manually
 if __name__ == "__main__":
-  test_report_integrity()
+  test_report_integrity_largest_regions()

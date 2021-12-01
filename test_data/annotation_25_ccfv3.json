@@ -656,9 +656,9 @@
       "median": 0.04395117734331691
     },
     "1051": {
-      "mean": NaN,
-      "std": NaN,
-      "median": NaN
+      "mean": null,
+      "std": null,
+      "median": null
     },
     "1046": {
       "mean": 0.14029006067141714,

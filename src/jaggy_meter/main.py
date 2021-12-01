@@ -9,7 +9,7 @@ import numpy as np
 import os
 
 
-def parse_args(args):
+def parse_args(args): 
     """Parse command line parameters
 
     Args:

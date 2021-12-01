@@ -1,20 +1,35 @@
 import numpy as np
 import threading
 import os
+# import nrrd
 
 
 def threadedProcess(volume, id, list_of_ratios_per_region, report, coronal_axis_index, per_slice_axis):
+    """
+    Should not be ran manually (ran by the compute() method)
+    This function does not return anything and instead happends data to structures provided in arguments. The reason of this design is
+    that this function is ran/orchestrated on a separate thread to which the returned values are not captured by threading.Thread.
+
+    Computes the metrics on a given region and adds a "perRegion" entry to the report.
+
+        Parameters:
+            volume (np.ndarray): annotation volume containing region labels (integers)
+            id (int): id of the region to compute the metrics on
+            list_of_ratios_per_region (list): OUTPUT. this function append the ratios for each slice for this particular region
+            report (dict): OUTPUT. This function adds in the "perRegion" metrics entry for this particular region
+            coronal_axis_index (int): index of the axis to for which the slicing happened orthogonal to (most likely the coronal axis, hence the name). (default: 0)
+            per_slice_axis (tuple): thetwo axis that represent the slice plane orthogonal to coronal_axis_index
+    """
     # we don't process the no_data part
     if id == 0:
         return
 
     # print("region id: ", id , f" ({counter + 1}/{nb_regions})")
-    print("region id: ", id)
+    # print("region id: ", id)
 
     # creating the volumetric mask for this region
     region_mask = np.zeros_like(volume, dtype=np.int8)
     region_mask[volume == id] = 1
-
     # nrrd.write(f'region_mask_{id}.nrrd', region_mask)
 
     # creating a rolled mask so that each slice in the rolled_region_mask is the same
@@ -31,12 +46,8 @@ def threadedProcess(volume, id, list_of_ratios_per_region, report, coronal_axis_
 
     region_mask_per_slice_non_zero = np.count_nonzero(region_mask, axis = per_slice_axis) 
     rolled_region_mask_per_slice_non_zero = np.count_nonzero(rolled_region_mask, axis = per_slice_axis)
-
     sum_non_zero = (region_mask_per_slice_non_zero + rolled_region_mask_per_slice_non_zero)
-
     diff_ratios_per_slice = np.divide(diff_per_slice_non_zero, sum_non_zero, out=np.zeros_like(diff_per_slice_non_zero, dtype=float), where=sum_non_zero!=0)
-
-    
     
     # we want to remove the ratios that are 1 because it means it's the begining or the end of a region,
     # hence not a transition from one true slice of a region to another.
@@ -51,15 +62,27 @@ def threadedProcess(volume, id, list_of_ratios_per_region, report, coronal_axis_
 
     report["perRegion"][int(id)] = {
         # "diffRatios": diff_ratios_per_slice.tolist(),
-        "mean": float(np.mean(non_zero_only)),
-        "std": float(np.std(non_zero_only)),
-        "median": float(np.median(non_zero_only)),
+        "mean": float(np.mean(non_zero_only)) if len(non_zero_only) > 0 else None,
+        "std": float(np.std(non_zero_only))  if len(non_zero_only) > 0 else None,
+        "median": float(np.median(non_zero_only))  if len(non_zero_only) > 0 else None,
     }
 
 
-
-
 def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_region_ids = None, nb_thread = os.cpu_count() - 1):
+    """
+    Compute the metrics of the jaggyness for a given annotation volume
+
+        Parameters:
+            volume (np.ndarray): the annotation volume containing region label (integers)
+            coronal_axis_index (int): index of the axis to for which the slicing happened orthogonal to (most likely the coronal axis, hence the name). (default: 0)
+            regions (list): list of region ids (integers) to run the metrics on. If not provided, the metrics we be computed on all the regions of the volume (default: None)
+            precomputed_all_region_ids (list): for optimization only. If already computed before, then the full list of regions availble in the volume can be passed here to avoir recomputation (default: None)
+            nb_threads (int): number of thread to run the metrics on (default: number of thread available - 1)
+
+        Returns:
+            metrics (dict). Metrics per slice, per region and global
+    """
+    
     print(f"computing on {nb_thread} threads...")
     shape = volume.shape
     nb_slices = shape[coronal_axis_index]
@@ -128,7 +151,9 @@ def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_regi
         run_some_thread()
 
     run_some_thread()
-        
+
+    if len(list_of_ratios_per_region) == 0:
+        return None
 
     # list_of_ratios_per_region
     ratios_per_region_per_slice = np.concatenate(list_of_ratios_per_region)
@@ -172,10 +197,10 @@ def compute(volume, coronal_axis_index = 0, regions = None, precomputed_all_regi
     # for the global approach, no need to 
     flat = ratios_per_region_per_slice.ravel()
     flat_non_zero = flat[flat > 0]
-    report["global"]["mean"] = float(np.mean(flat_non_zero))
-    report["global"]["median"] = float(np.median(flat_non_zero))
-    report["global"]["std"] = float(np.std(flat_non_zero))
-    report["global"]["min"] = float(np.min(flat_non_zero))
-    report["global"]["max"] = float(np.max(flat_non_zero))
+    report["global"]["mean"] = float(np.mean(flat_non_zero)) if len(non_zero_only) > 0 else None
+    report["global"]["median"] = float(np.median(flat_non_zero)) if len(non_zero_only) > 0 else None
+    report["global"]["std"] = float(np.std(flat_non_zero)) if len(non_zero_only) > 0 else None
+    report["global"]["min"] = float(np.min(flat_non_zero)) if len(non_zero_only) > 0 else None
+    report["global"]["max"] = float(np.max(flat_non_zero)) if len(non_zero_only) > 0 else None
 
     return report

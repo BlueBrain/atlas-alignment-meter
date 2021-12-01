@@ -2,7 +2,9 @@
 [run]
 branch = True
 source = jaggy_meter
-# omit = bad_file.py
+omit = 
+    src/jaggy_metter/__init__.py
+    src/jaggy_metter/main.py
 
 [paths]
 source =
