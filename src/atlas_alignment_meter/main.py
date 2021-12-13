@@ -1,10 +1,10 @@
 import argparse
 import sys
-from jaggy_meter import __version__
+from atlas_alignment_meter import __version__
 import nrrd
 import json
-from jaggy_meter import core
-from jaggy_meter import export_volume
+from atlas_alignment_meter import core
+from atlas_alignment_meter import export_volume
 import numpy as np
 import os
 
@@ -22,7 +22,7 @@ def parse_args(args):
     parser.add_argument(
         "--version",
         action="version",
-        version="jaggy-meter {ver}".format(ver=__version__),
+        version="atlas-alignment-meter {ver}".format(ver=__version__),
     )
 
     parser.add_argument(

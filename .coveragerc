@@ -1,10 +1,10 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
-source = jaggy_meter
+source = atlas_alignment_meter
 omit = 
-    src/jaggy_metter/__init__.py
-    src/jaggy_metter/main.py
+    src/atlas_alignment_meter/__init__.py
+    src/atlas_alignment_meter/main.py
 
 [paths]
 source =

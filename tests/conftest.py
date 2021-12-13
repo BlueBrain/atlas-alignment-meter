@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Dummy conftest.py for jaggy_meter.
+    Dummy conftest.py for atlas_alignment_meter.
 
     If you don't know what this is for, just leave it empty.
     Read more about conftest.py under:

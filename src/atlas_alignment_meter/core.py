@@ -88,7 +88,7 @@ def compute(
     nb_thread=os.cpu_count() - 1,
 ):
     """
-    Compute the metrics of the jaggyness for a given annotation volume
+    Compute the metrics of the jaggedness for a given annotation volume
 
         Parameters:
             volume (np.ndarray): the annotation volume containing region label (integers)

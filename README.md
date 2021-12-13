@@ -1,42 +1,42 @@
-Pythonic tool (CLI and library) to measure the slice-to-slice jaggyness of a volumetric dataset (NRRD file only).
+Pythonic tool (CLI and library) to measure the slice-to-slice jaggedness of a volumetric dataset (NRRD file only).
 
 # Usage
 install the last version:
 ```
-pip install git+https://bbpgitlab.epfl.ch/dke/users/jonathanlurie/jaggy-meter.git
+pip install git+https://bbpgitlab.epfl.ch/dke/users/jonathanlurie/atlas-alignment-meter.git
 ```
 
-Will probably move to `https://bbpgitlab.epfl.ch/dke/apps/jaggy-meter.git` when no longer *beta*.
+Will probably move to `https://bbpgitlab.epfl.ch/dke/apps/atlas-alignment-meter.git` when no longer *beta*.
 
 ## As a CLI:
 ```
-jaggy-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json
+atlas-alignment-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json
 ```
 With `-i` for **input volume**, `-o` for **output json report**.  
 
 To run it only on a selected subset or region IDs, use `-r` or `--regions` and a comma separated list (with no whitespace between them)
 ```
-jaggy-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r 12,23,34,45
+atlas-alignment-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r 12,23,34,45
 ```
 
 To run it on the *N* (ex. 10) largest regions of the volume:
 ```
-jaggy-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r LARGEST,10
+atlas-alignment-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r LARGEST,10
 ```
 
 To run it on the *N* (ex. 10) smallest regions of the volume:
 ```
-jaggy-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r SMALLEST,10
+atlas-alignment-meter -i test_data/annotation_25_ccfv3.nrrd -o test_data/annotation_25_ccfv3.json -r SMALLEST,10
 ```
 Note that the `-t` options followed by a number runs the CLI on the given number of threads. If not provided or providing `-t AUTO`, then the CLI run on *(max_number_of_thread - 1)* to not bloat the machine. Keep in mind that running a process on more threads than physically available will perform poorly.
 
-More info with `jaggy-meter --help`.
+More info with `atlas-alignment-meter --help`.
 
 ## As a Python library
-To import *jaggy-meter* into another codebase, we need to import its core:
+To import *atlas-alignment-meter* into another codebase, we need to import its core:
 
 ```python
-from jaggy_meter import core
+from atlas_alignment_meter import core
 import nrrd
 
 # load your volume and all:
@@ -70,16 +70,16 @@ As a comparison, here is a jagged volume:
 
 AIBS CCFv2 axial             |  AIBS CCFv2 sagittal
 :-------------------------:|:-------------------------:
-![Jaggy AIBS CCF v2 axial plane](images/aibs_ccfv2_axial.png)  |  ![Jaggy AIBS CCF v2 sagittal plane](images/aibs_ccfv2_sagittal.png)
+![Jagged AIBS CCF v2 axial plane](images/aibs_ccfv2_axial.png)  |  ![Jagged AIBS CCF v2 sagittal plane](images/aibs_ccfv2_sagittal.png)
 
-# Why measuring the jaggyness?
+# Why measuring the jaggedness?
 Providing such metric is important mostly to evaluate the quality of the volume alignment, from `1` (very jagged volume, basically white noise) to `0` (no jaggies at all, basically a unified blob of a single value).  
 
-At Blue Brain, we also have some procedures to obtain a smooth volume from a jaggy one, with the purpose of placing cells or building circuit. Hence, it is key to provide a metric to evaluate the efficiency of the re-alignment process and eventually improve it.
+At Blue Brain, we also have some procedures to obtain a smooth volume from a jagged one, with the purpose of placing cells or building circuit. Hence, it is key to provide a metric to evaluate the efficiency of the re-alignment process and eventually improve it.
 
 # Method
 ## General
-*In the following, we will assume as a generality that the coronal plane is always the capture plane, and that the purpose is to measure the jaggyness along the anterior-posterior axis.*  
+*In the following, we will assume as a generality that the coronal plane is always the capture plane, and that the purpose is to measure the jaggedness along the anterior-posterior axis.*  
 
 For a given region of interest (ROI) that we convert into a binary mask, we measure its distribution on each slice compared to the next. To achieve that, we use the following method:
 
@@ -102,12 +102,12 @@ The pros of this methods are:
 - no division by zero possible (since only computed on ROI)
 
 The cons of this method (and how they are worked around) are:
-- The slice just before the begining of a region or the slice just after the end will have `0` voxel of this ROI, hence the ratio is always going to be `1.0`. Furthermore, a ratio of `1.0` can happen only in this particular case. Since we do not want to measure where a ROI is starting or ending but only want to measure the jaggyness happening within a ROI, we can just safely remove all the `1.0` from our set of measures. The reason for removing those values is that a ratio of `1.0` would add a bias to the final measures, making a ROI looking more jagged than it actually is.
+- The slice just before the begining of a region or the slice just after the end will have `0` voxel of this ROI, hence the ratio is always going to be `1.0`. Furthermore, a ratio of `1.0` can happen only in this particular case. Since we do not want to measure where a ROI is starting or ending but only want to measure the jaggedness happening within a ROI, we can just safely remove all the `1.0` from our set of measures. The reason for removing those values is that a ratio of `1.0` would add a bias to the final measures, making a ROI looking more jagged than it actually is.
 - The method is based on a difference from a slice to the next, as a result, it will not be possible to compute this value for the very last slice fo the volume. The solution is to simply not compute the ratio on the last slice and making it *nullish*.
 
 **Note 1:** the *no data* part around the brain is *NOT* considered as a ROI and its score is not computed.  
 
-**Note 2:** The final score, from a pair of slices or averaged on a whole volume, will not tell whether or not a volume has an acceptable jaggyness, as this entirely depends on the conducted experiment and the eye of the scientist. To compensate for this lack of objectivity, the best course of action is to run this method on a reference volume, either an unacceptably jagged one or a very smooth one (or both). This will minimize the interval of confidence and help bearing a judgement on a candidate volume. 
+**Note 2:** The final score, from a pair of slices or averaged on a whole volume, will not tell whether or not a volume has an acceptable jaggedness, as this entirely depends on the conducted experiment and the eye of the scientist. To compensate for this lack of objectivity, the best course of action is to run this method on a reference volume, either an unacceptably jagged one or a very smooth one (or both). This will minimize the interval of confidence and help bearing a judgement on a candidate volume. 
 
 ## Part 1: The per-region metrics
 It may happen that an annotation volume is aligned with an algorithm that takes into consideration mostly its external envelope and does not process the alignement on internal structure. As a result, the whole brain mask would be fairly smooth but the internal parts would still be very much jagged.  
@@ -121,7 +121,7 @@ When the computation of **part 1** is done on all available (or desired) regions
 
 ## Part 3: The global metrics
 Comparably to the the *per-slice* approach, the metrics related to the global score (`mean`, `std`, `median`, `min` and `max`) are computed after discarding all the *no data* of outside the brain and the *no data* around each ROI.  
-As a general comment, the global metrics are best suited for a not-too-in-depth sneek peak into the jaggyness metrics.
+As a general comment, the global metrics are best suited for a not-too-in-depth sneek peak into the jaggedness metrics.
 
 # Output
 A Pyton dictionnary is outputed and can be saved as JSON. Samples of these JSON files can be found in the folder `test_data/*.json`, where they are related to the volumes of the same name `*.nrrd`.

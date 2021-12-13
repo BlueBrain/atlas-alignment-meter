@@ -1,5 +1,5 @@
-from jaggy_meter import core
-from jaggy_meter import __version__
+from atlas_alignment_meter import core
+from atlas_alignment_meter import __version__
 import nrrd
 
 def test_report_integrity_zero():

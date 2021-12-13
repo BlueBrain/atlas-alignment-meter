@@ -1,5 +1,5 @@
-from jaggy_meter import core
-from jaggy_meter import export_volume
+from atlas_alignment_meter import core
+from atlas_alignment_meter import export_volume
 import nrrd
 import os
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    Setup file for jaggy_meter.
+    Setup file for atlas_alignment_meter.
     Use setup.cfg to configure your project.
 
     This file was generated with PyScaffold 3.3.1.
