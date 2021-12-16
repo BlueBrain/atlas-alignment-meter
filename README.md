@@ -3,10 +3,8 @@ Pythonic tool (CLI and library) to measure the slice-to-slice jaggedness of a vo
 # Usage
 install the last version:
 ```
-pip install git+https://bbpgitlab.epfl.ch/dke/users/jonathanlurie/atlas-alignment-meter.git
+pip install git+https://github.com/BlueBrain/atlas-alignment-meter.git
 ```
-
-Will probably move to `https://bbpgitlab.epfl.ch/dke/apps/atlas-alignment-meter.git` when no longer *beta*.
 
 ## As a CLI:
 ```
