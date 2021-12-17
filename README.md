@@ -184,7 +184,10 @@ As a result, the image plane orthogonal to the X-axis is represented by 2D image
 
 (For example, the rat atlas volume has its coronal slices on the X-by-Z place and its anterior-to-posterior axis on Y)
 
+# Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 # Funding & Acknowledgment
-The development of this software was supported by funding to the Blue Brain Project, a research center of the École Polytechnique fédérale de Lausanne (EPFL), from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
+The development of this software was supported by funding to the Blue Brain Project, a research center of the École Polytechnique Fédérale de Lausanne (EPFL), from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
  
 Copyright © 2015-2021 Blue Brain Project/EPFL
