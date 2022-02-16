@@ -1,3 +1,5 @@
+![Atlas-Alignment-Meter Logo](docs/logo/BBP-Atlas-Alignment-Meter.jpg)
+
 Pythonic tool (CLI and library) to measure the slice-to-slice jaggedness of a volumetric dataset (NRRD file only).
 
 # Usage
