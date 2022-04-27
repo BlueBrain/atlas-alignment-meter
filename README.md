@@ -190,7 +190,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 # Funding & Acknowledgment
 The development of this software was supported by funding to the Blue Brain Project, a research center of the École Polytechnique Fédérale de Lausanne (EPFL), from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
  
-Copyright © 2015-2021 Blue Brain Project/EPFL
+Copyright © 2015-2022 Blue Brain Project/EPFL
 
 # License
 [Apache License Version 2.0](LICENSE.txt)
