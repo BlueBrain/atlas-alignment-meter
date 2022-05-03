@@ -92,7 +92,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "atlas-alignment-meter"
-copyright = "Copyright © 2015-2021 Blue Brain Project/EPFL"
+copyright = "Copyright © 2015-2022 Blue Brain Project/EPFL"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
